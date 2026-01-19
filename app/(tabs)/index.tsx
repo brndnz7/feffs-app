@@ -1,98 +1,217 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+  return (
+    <ScrollView
+      style={[styles.container, isDark && styles.containerDark]}
+      contentContainerStyle={styles.content}
+    >
+      {/* Header Festival */}
+      <ThemedView style={styles.header}>
+        <ThemedText
+          type="title"
+          style={styles.festivalTitle}
+          accessibilityRole="header"
+        >
+          🎬 FEFFS 2026
+        </ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Festival Européen du Film Fantastique de Strasbourg
+        </ThemedText>
+        <ThemedText style={styles.dates}>10 - 20 Septembre 2026</ThemedText>
+      </ThemedView>
+
+      {/* La Quotidienne */}
+      <ThemedView style={styles.section}>
+        <ThemedText
+          type="subtitle"
+          style={styles.sectionTitle}
+          accessibilityRole="header"
+        >
+          📅 La Quotidienne
+        </ThemedText>
+        <ThemedView style={[styles.card, isDark && styles.cardDark]}>
+          <ThemedText type="defaultSemiBold">Dimanche 19 Janvier</ThemedText>
+          <ThemedText style={styles.cardText}>
+            Bienvenue sur l'application officielle du FEFFS ! Découvrez le
+            programme, créez votre planning personnalisé et accédez à votre pass
+            festivalier.
+          </ThemedText>
+        </ThemedView>
+      </ThemedView>
+
+      {/* Actualités */}
+      <ThemedView style={styles.section}>
+        <ThemedText
+          type="subtitle"
+          style={styles.sectionTitle}
+          accessibilityRole="header"
+        >
+          📢 Actualités
+        </ThemedText>
+
+        <TouchableOpacity
+          style={[styles.newsCard, isDark && styles.cardDark]}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Article: La programmation 2026 bientôt dévoilée"
+          accessibilityHint="Appuyez pour lire l'article complet"
+        >
+          <ThemedText type="defaultSemiBold">🎉 Programmation 2026</ThemedText>
+          <ThemedText style={styles.cardText}>
+            La programmation complète sera dévoilée prochainement. Restez
+            connectés !
+          </ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.newsCard, isDark && styles.cardDark]}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Article: Les pass sont disponibles"
+          accessibilityHint="Appuyez pour lire l'article complet"
+        >
+          <ThemedText type="defaultSemiBold">🎟️ Pass en vente</ThemedText>
+          <ThemedText style={styles.cardText}>
+            Les pass festivaliers sont maintenant disponibles à l'achat
+            directement dans l'application.
+          </ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+
+      {/* Raccourcis */}
+      <ThemedView style={styles.section}>
+        <ThemedText
+          type="subtitle"
+          style={styles.sectionTitle}
+          accessibilityRole="header"
+        >
+          🚀 Accès rapide
+        </ThemedText>
+        <View style={styles.shortcuts}>
+          <TouchableOpacity
+            style={[styles.shortcutButton, { backgroundColor: "#E63946" }]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Voir le programme"
+          >
+            <ThemedText style={styles.shortcutText}>🎬 Programme</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.shortcutButton, { backgroundColor: "#457B9D" }]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Mon planning"
+          >
+            <ThemedText style={styles.shortcutText}>📅 Planning</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.shortcutButton, { backgroundColor: "#2A9D8F" }]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Mon pass"
+          >
+            <ThemedText style={styles.shortcutText}>🎟️ Pass</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </ThemedView>
+
+      {/* Footer */}
+      <ThemedView style={styles.footer}>
+        <ThemedText style={styles.footerText}>
+          © FEFFS 2026 - Tous droits réservés
         </ThemedText>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  containerDark: {
+    backgroundColor: "#000",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  content: {
+    padding: 16,
+  },
+  header: {
+    alignItems: "center",
+    paddingVertical: 24,
+    marginBottom: 16,
+  },
+  festivalTitle: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#E63946",
+  },
+  subtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 8,
+    opacity: 0.8,
+  },
+  dates: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 8,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    marginBottom: 12,
+  },
+  card: {
+    backgroundColor: "#f5f5f5",
+    padding: 16,
+    borderRadius: 12,
+  },
+  cardDark: {
+    backgroundColor: "#1a1a1a",
+  },
+  cardText: {
+    marginTop: 8,
+    lineHeight: 22,
+  },
+  newsCard: {
+    backgroundColor: "#f5f5f5",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  shortcuts: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  shortcutButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  shortcutText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  footer: {
+    alignItems: "center",
+    paddingVertical: 24,
+    marginTop: 16,
+  },
+  footerText: {
+    fontSize: 12,
+    opacity: 0.5,
   },
 });
