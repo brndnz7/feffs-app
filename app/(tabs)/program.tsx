@@ -1,64 +1,119 @@
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  CATEGORY_LABELS,
+  COMPETITION_LABELS,
+  FILMS,
+  FilmCategory,
+  FilmData,
+} from "@/src/data/films";
 
-// Données de démonstration
-const DEMO_FILMS = [
-  {
-    id: "1",
-    title: "Le Monstre des Abysses",
-    director: "Jean Dupont",
-    year: 2026,
-    duration: 95,
-    genre: ["Horreur", "Thriller"],
-  },
-  {
-    id: "2",
-    title: "Dimension Parallèle",
-    director: "Marie Martin",
-    year: 2025,
-    duration: 112,
-    genre: ["Science-Fiction"],
-  },
-  {
-    id: "3",
-    title: "Les Ombres du Passé",
-    director: "Pierre Bernard",
-    year: 2026,
-    duration: 88,
-    genre: ["Fantastique", "Drame"],
-  },
-  {
-    id: "4",
-    title: "Créatures de la Nuit",
-    director: "Sophie Lefebvre",
-    year: 2026,
-    duration: 105,
-    genre: ["Horreur"],
-  },
+const CATEGORY_FILTERS: { key: FilmCategory | "all"; label: string; emoji: string }[] = [
+  { key: "all", label: "Tous", emoji: "🎬" },
+  { key: "competition", label: "Compétition", emoji: "🏆" },
+  { key: "eurogenre", label: "Eurogenre", emoji: "🇪🇺" },
+  { key: "crossovers", label: "Crossovers", emoji: "🎭" },
+  { key: "animation", label: "Animation", emoji: "🎨" },
+  { key: "retrospective", label: "Rétrospectives", emoji: "📽️" },
+  { key: "short", label: "Courts", emoji: "⏱️" },
 ];
 
-const CATEGORIES = ["Tous", "Films", "Événements", "Masterclass"];
-
 export default function ProgramScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const [selectedCategory, setSelectedCategory] = useState("Tous");
+  const [selectedCategory, setSelectedCategory] = useState<FilmCategory | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredFilms = DEMO_FILMS.filter(
-    (film) =>
+  const filteredFilms = FILMS.filter((film) => {
+    const matchesSearch =
       film.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      film.director.toLowerCase().includes(searchQuery.toLowerCase()),
+      film.director.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      film.genre.some((g) => g.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesCategory =
+      selectedCategory === "all" || film.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  // Séparer les films par type pour l'affichage
+  const longFilms = filteredFilms.filter(
+    (f) => f.category !== "short" && f.duration >= 40
+  );
+  const shortFilms = filteredFilms.filter(
+    (f) => f.category === "short" || f.duration < 40
+  );
+
+  const navigateToFilm = (filmId: string) => {
+    router.push(`/film/${filmId}` as any);
+  };
+
+  const renderFilmCard = (film: FilmData) => (
+    <TouchableOpacity
+      key={film.id}
+      style={[styles.filmCard, isDark && styles.cardDark]}
+      onPress={() => navigateToFilm(film.id)}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={`${film.title}, réalisé par ${film.director}, ${film.year}, durée ${film.duration} minutes`}
+      accessibilityHint="Appuyez pour voir les détails et les séances"
+    >
+      <View style={styles.filmPoster}>
+        <ThemedText style={styles.posterEmoji}>🎬</ThemedText>
+      </View>
+      <View style={styles.filmInfo}>
+        <View style={styles.filmHeader}>
+          <ThemedText type="defaultSemiBold" style={styles.filmTitle} numberOfLines={2}>
+            {film.title}
+          </ThemedText>
+          {film.isWorldPremiere && (
+            <View style={styles.premiereBadge}>
+              <ThemedText style={styles.premiereBadgeText}>AP</ThemedText>
+            </View>
+          )}
+        </View>
+
+        <ThemedText style={styles.filmDirector}>
+          {film.director} • {film.country}
+        </ThemedText>
+
+        <View style={styles.genreContainer}>
+          {film.genre.slice(0, 2).map((g, index) => (
+            <View key={index} style={styles.genreBadge}>
+              <ThemedText style={styles.genreText}>{g}</ThemedText>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.filmMeta}>
+          <ThemedText style={styles.filmDuration}>
+            ⏱️ {film.duration} min
+          </ThemedText>
+          {film.competition !== "none" && (
+            <ThemedText style={styles.competitionTag}>
+              🏆 {COMPETITION_LABELS[film.competition]}
+            </ThemedText>
+          )}
+        </View>
+
+        <ThemedText style={styles.categoryLabel}>
+          {CATEGORY_LABELS[film.category]}
+        </ThemedText>
+      </View>
+      <ThemedText style={styles.chevron}>›</ThemedText>
+    </TouchableOpacity>
   );
 
   return (
@@ -87,84 +142,92 @@ export default function ProgramScreen() {
         style={styles.categoriesContainer}
         contentContainerStyle={styles.categoriesContent}
       >
-        {CATEGORIES.map((category) => (
+        {CATEGORY_FILTERS.map((category) => (
           <TouchableOpacity
-            key={category}
+            key={category.key}
             style={[
               styles.categoryButton,
-              selectedCategory === category && styles.categoryButtonActive,
+              selectedCategory === category.key && styles.categoryButtonActive,
             ]}
-            onPress={() => setSelectedCategory(category)}
+            onPress={() => setSelectedCategory(category.key)}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel={`Catégorie ${category}`}
-            accessibilityState={{ selected: selectedCategory === category }}
+            accessibilityLabel={`Catégorie ${category.label}`}
+            accessibilityState={{ selected: selectedCategory === category.key }}
           >
+            <ThemedText style={styles.categoryEmoji}>{category.emoji}</ThemedText>
             <ThemedText
               style={[
                 styles.categoryText,
-                selectedCategory === category && styles.categoryTextActive,
+                selectedCategory === category.key && styles.categoryTextActive,
               ]}
             >
-              {category}
+              {category.label}
             </ThemedText>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Liste des films */}
-      <ThemedView style={styles.section}>
-        <ThemedText
-          type="subtitle"
-          style={styles.sectionTitle}
-          accessibilityRole="header"
-        >
-          🎬 Films ({filteredFilms.length})
+      {/* Stats */}
+      <ThemedView style={styles.statsBar}>
+        <ThemedText style={styles.statsText}>
+          {filteredFilms.length} film{filteredFilms.length > 1 ? "s" : ""} trouvé
+          {filteredFilms.length > 1 ? "s" : ""}
         </ThemedText>
-
-        {filteredFilms.map((film) => (
-          <TouchableOpacity
-            key={film.id}
-            style={[styles.filmCard, isDark && styles.cardDark]}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={`${film.title}, réalisé par ${film.director}, ${film.year}, durée ${film.duration} minutes`}
-            accessibilityHint="Appuyez pour voir les détails et les séances"
-          >
-            <View style={styles.filmPoster}>
-              <ThemedText style={styles.posterEmoji}>🎬</ThemedText>
-            </View>
-            <View style={styles.filmInfo}>
-              <ThemedText type="defaultSemiBold" style={styles.filmTitle}>
-                {film.title}
-              </ThemedText>
-              <ThemedText style={styles.filmDirector}>
-                {film.director} • {film.year}
-              </ThemedText>
-              <View style={styles.genreContainer}>
-                {film.genre.map((g, index) => (
-                  <View key={index} style={styles.genreBadge}>
-                    <ThemedText style={styles.genreText}>{g}</ThemedText>
-                  </View>
-                ))}
-              </View>
-              <ThemedText style={styles.filmDuration}>
-                ⏱️ {Math.floor(film.duration / 60)}h
-                {film.duration % 60 > 0 ? `${film.duration % 60}` : ""}
-              </ThemedText>
-            </View>
-          </TouchableOpacity>
-        ))}
       </ThemedView>
+
+      {/* Longs métrages */}
+      {longFilms.length > 0 && (
+        <ThemedView style={styles.section}>
+          <ThemedText
+            type="subtitle"
+            style={styles.sectionTitle}
+            accessibilityRole="header"
+          >
+            🎬 Longs métrages ({longFilms.length})
+          </ThemedText>
+          {longFilms.map(renderFilmCard)}
+        </ThemedView>
+      )}
+
+      {/* Courts métrages */}
+      {shortFilms.length > 0 && (
+        <ThemedView style={styles.section}>
+          <ThemedText
+            type="subtitle"
+            style={styles.sectionTitle}
+            accessibilityRole="header"
+          >
+            ⏱️ Courts métrages ({shortFilms.length})
+          </ThemedText>
+          {shortFilms.map(renderFilmCard)}
+        </ThemedView>
+      )}
 
       {/* Message si pas de résultats */}
       {filteredFilms.length === 0 && (
         <ThemedView style={styles.emptyState}>
+          <ThemedText style={styles.emptyEmoji}>🔍</ThemedText>
+          <ThemedText style={styles.emptyTitle}>Aucun résultat</ThemedText>
           <ThemedText style={styles.emptyText}>
             {`Aucun film trouvé pour "${searchQuery}"`}
           </ThemedText>
+          <TouchableOpacity
+            onPress={() => {
+              setSearchQuery("");
+              setSelectedCategory("all");
+            }}
+            style={styles.resetButton}
+          >
+            <ThemedText style={styles.resetButtonText}>
+              Réinitialiser les filtres
+            </ThemedText>
+          </TouchableOpacity>
         </ThemedView>
       )}
+
+      {/* Bottom padding */}
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
@@ -185,7 +248,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     backgroundColor: "#f5f5f5",
-    padding: 12,
+    padding: 14,
     borderRadius: 12,
     fontSize: 16,
     color: "#000",
@@ -199,23 +262,38 @@ const styles = StyleSheet.create({
   },
   categoriesContent: {
     gap: 8,
+    paddingRight: 16,
   },
   categoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: "#f0f0f0",
     marginRight: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   categoryButtonActive: {
     backgroundColor: "#E63946",
   },
-  categoryText: {
+  categoryEmoji: {
     fontSize: 14,
+  },
+  categoryText: {
+    fontSize: 13,
     fontWeight: "500",
   },
   categoryTextActive: {
     color: "#fff",
+  },
+  statsBar: {
+    marginBottom: 16,
+    paddingVertical: 8,
+  },
+  statsText: {
+    fontSize: 13,
+    opacity: 0.6,
   },
   section: {
     marginBottom: 24,
@@ -229,61 +307,120 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
+    alignItems: "center",
   },
   cardDark: {
     backgroundColor: "#1a1a1a",
   },
   filmPoster: {
-    width: 80,
-    height: 120,
+    width: 70,
+    height: 100,
     backgroundColor: "#ddd",
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
   },
   posterEmoji: {
-    fontSize: 32,
+    fontSize: 28,
   },
   filmInfo: {
     flex: 1,
     marginLeft: 12,
-    justifyContent: "space-between",
   },
-  filmTitle: {
-    fontSize: 16,
+  filmHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
     marginBottom: 4,
   },
+  filmTitle: {
+    fontSize: 15,
+    flex: 1,
+  },
+  premiereBadge: {
+    backgroundColor: "#E63946",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  premiereBadgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "bold",
+  },
   filmDirector: {
-    fontSize: 14,
+    fontSize: 13,
     opacity: 0.7,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   genreContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 8,
+    gap: 4,
+    marginBottom: 6,
   },
   genreBadge: {
     backgroundColor: "#E6394620",
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 4,
   },
   genreText: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#E63946",
     fontWeight: "600",
   },
+  filmMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
   filmDuration: {
-    fontSize: 13,
+    fontSize: 12,
     opacity: 0.7,
+  },
+  competitionTag: {
+    fontSize: 10,
+    color: "#B8860B",
+    fontWeight: "500",
+  },
+  categoryLabel: {
+    fontSize: 11,
+    opacity: 0.5,
+  },
+  chevron: {
+    fontSize: 24,
+    opacity: 0.3,
+    marginLeft: 8,
   },
   emptyState: {
     alignItems: "center",
-    paddingVertical: 40,
+    paddingVertical: 60,
+  },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 8,
   },
   emptyText: {
     opacity: 0.6,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  resetButton: {
+    backgroundColor: "#E63946",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  resetButtonText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 });
+
