@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import React from "react";
+import { Platform } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -8,79 +8,112 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        headerShown: true,
+        tabBarActiveTintColor: colors.tint,
+        tabBarInactiveTintColor: colors.tabIconDefault,
+        headerShown: false,
         tabBarButton: HapticTab,
-        headerStyle: {
-          backgroundColor: colorScheme === "dark" ? "#1a1a1a" : "#fff",
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.cardBorder,
+          borderTopWidth: 0.5,
+          paddingTop: 8,
+          paddingBottom: Platform.OS === "ios" ? 28 : 12,
+          height: Platform.OS === "ios" ? 88 : 68,
+          ...Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            },
+            android: {
+              elevation: 8,
+            },
+          }),
         },
-        headerTintColor: colorScheme === "dark" ? "#fff" : "#000",
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "600",
+          marginTop: 10,
+        },
+        tabBarIconStyle: {
+          marginBottom: -4,
+        },
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="daily"
         options={{
-          title: "Accueil",
-          headerTitle: "FEFFS 2026",
+          title: "Quotidienne",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <IconSymbol size={28} name="sun.max.fill" color={color} />
           ),
-          tabBarAccessibilityLabel: "Onglet Accueil",
+          tabBarAccessibilityLabel: "La Quotidienne - Programme du jour",
         }}
       />
       <Tabs.Screen
         name="program"
         options={{
           title: "Programme",
-          headerTitle: "Programme",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="film.fill" color={color} />
+            <IconSymbol size={28} name="list.bullet" color={color} />
           ),
-          tabBarAccessibilityLabel: "Onglet Programme des films et événements",
+          tabBarAccessibilityLabel: "Mon programme personnalisé",
         }}
       />
       <Tabs.Screen
-        name="schedule"
+        name="films"
         options={{
-          title: "Mon Planning",
-          headerTitle: "Mon Planning",
+          title: "Films",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="calendar" color={color} />
+            <IconSymbol size={28} name="film" color={color} />
           ),
-          tabBarAccessibilityLabel: "Onglet Mon planning personnalisé",
+          tabBarAccessibilityLabel: "Catalogue des films",
         }}
       />
       <Tabs.Screen
         name="pass"
         options={{
-          title: "Mon Pass",
-          headerTitle: "Mon Pass",
+          title: "Pass",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="ticket.fill" color={color} />
           ),
-          tabBarAccessibilityLabel: "Onglet Mon pass festivalier",
+          tabBarAccessibilityLabel: "Mon pass festivalier",
         }}
       />
       <Tabs.Screen
-        name="more"
+        name="surveys"
         options={{
-          title: "Plus",
-          headerTitle: "Plus",
+          title: "Enquêtes",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="ellipsis" color={color} />
+            <IconSymbol size={28} name="doc.text.fill" color={color} />
           ),
-          tabBarAccessibilityLabel: "Onglet Plus et paramètres",
+          tabBarAccessibilityLabel: "Enquêtes de satisfaction",
         }}
       />
-      {/* Cache l'ancien onglet explore */}
       <Tabs.Screen
-        name="explore"
+        name="info"
         options={{
-          href: null,
+          title: "Infos",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="info.circle.fill" color={color} />
+          ),
+          tabBarAccessibilityLabel: "Informations pratiques",
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Réglages",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="gearshape.fill" color={color} />
+          ),
+          tabBarAccessibilityLabel: "Réglages de l'application",
         }}
       />
     </Tabs>

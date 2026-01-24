@@ -1,438 +1,572 @@
-import { useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
+import { PassCard } from "@/components/pass-card";
+import { PassPurchaseForm } from "@/components/pass-purchase-form";
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { BorderRadius, Colors, Festival, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-
-type PassType = "full" | "weekend" | "day" | "student";
-
-// Données de démonstration d'un pass
-const DEMO_PASS: {
-  id: string;
-  type: PassType;
-  typeName: string;
-  firstName: string;
-  lastName: string;
-  validFrom: string;
-  validUntil: string;
-  photo: string | null;
-  qrCode: string;
-} = {
-  id: "FEFFS-2026-001234",
-  type: "full",
-  typeName: "Pass Intégral",
-  firstName: "Jean",
-  lastName: "Dupont",
-  validFrom: "10 Sept 2026",
-  validUntil: "20 Sept 2026",
-  photo: null,
-  qrCode: "FEFFS2026-001234-JEAN-DUPONT",
-};
-
-const PASS_TYPES: {
-  type: PassType;
-  name: string;
-  price: number;
-  description: string;
-}[] = [
-  {
-    type: "full",
-    name: "Pass Intégral",
-    price: 120,
-    description: "Accès illimité pendant tout le festival",
-  },
-  {
-    type: "weekend",
-    name: "Pass Week-end",
-    price: 60,
-    description: "Accès le samedi et dimanche",
-  },
-  {
-    type: "day",
-    name: "Pass Journée",
-    price: 25,
-    description: "Accès pour une journée au choix",
-  },
-  {
-    type: "student",
-    name: "Pass Étudiant",
-    price: 80,
-    description: "Pass intégral tarif réduit (sur justificatif)",
-  },
-];
+import { clearUserPass, getUserPass, saveUserPass } from "@/services/storage";
+import { UserPass } from "@/types";
 
 export default function PassScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const [hasPass, setHasPass] = useState(false);
-  const [pass, setPass] = useState(DEMO_PASS);
+  const colors = Colors[colorScheme ?? "light"];
+  const [pass, setPass] = useState<UserPass | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Simuler l'achat d'un pass
-  const purchasePass = (type: PassType) => {
-    const passType = PASS_TYPES.find((p) => p.type === type);
-    setPass({
-      ...DEMO_PASS,
-      type,
-      typeName: passType?.name || "Pass",
-    });
-    setHasPass(true);
+  useEffect(() => {
+    loadPass();
+  }, []);
+
+  const loadPass = async () => {
+    try {
+      const savedPass = await getUserPass();
+      if (savedPass) {
+        setPass({
+          ...savedPass,
+          createdAt: new Date(savedPass.createdAt),
+          validUntil: new Date(savedPass.validUntil),
+        });
+      }
+    } catch (error) {
+      console.error("Erreur chargement pass:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  if (hasPass) {
+  const handleSubmit = async (newPass: UserPass) => {
+    setIsSaving(true);
+    try {
+      await saveUserPass(newPass);
+      setPass(newPass);
+      Alert.alert(
+        "✅ Pass créé",
+        "Votre demande de pass a été enregistrée. Présentez-vous au Village Fantastique pour finaliser votre achat.",
+        [{ text: "OK" }],
+      );
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de sauvegarder le pass");
+      console.error("Erreur sauvegarde pass:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await clearUserPass();
+      setPass(null);
+      Alert.alert("Pass supprimé", "Votre pass a été supprimé avec succès.");
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de supprimer le pass");
+      console.error("Erreur suppression pass:", error);
+    }
+  };
+
+  if (isLoading) {
     return (
-      <ScrollView
-        style={[styles.container, isDark && styles.containerDark]}
-        contentContainerStyle={styles.content}
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
       >
-        {/* Pass Card */}
-        <View
-          style={styles.passCard}
-          accessible={true}
-          accessibilityLabel={`Pass ${pass.typeName} pour ${pass.firstName} ${pass.lastName}, valide du ${pass.validFrom} au ${pass.validUntil}`}
-        >
-          <View style={styles.passHeader}>
-            <ThemedText style={styles.passLogo}>🎬 FEFFS 2026</ThemedText>
-            <ThemedText style={styles.passType}>{pass.typeName}</ThemedText>
-          </View>
-
-          <View style={styles.passBody}>
-            {/* Photo */}
-            <View style={styles.photoContainer}>
-              {pass.photo ? (
-                <Image source={{ uri: pass.photo }} style={styles.photo} />
-              ) : (
-                <View style={styles.photoPlaceholder}>
-                  <ThemedText style={styles.photoPlaceholderText}>
-                    📷
-                  </ThemedText>
-                </View>
-              )}
-              <TouchableOpacity
-                style={styles.photoButton}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Ajouter ou modifier la photo"
-              >
-                <ThemedText style={styles.photoButtonText}>
-                  📸 Modifier
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-
-            {/* Infos */}
-            <View style={styles.passInfo}>
-              <ThemedText style={styles.passName}>
-                {pass.firstName} {pass.lastName}
-              </ThemedText>
-              <ThemedText style={styles.passId}>N° {pass.id}</ThemedText>
-              <ThemedText style={styles.passValidity}>
-                Valide du {pass.validFrom} au {pass.validUntil}
-              </ThemedText>
-            </View>
-          </View>
-
-          {/* QR Code */}
-          <View style={styles.qrContainer}>
-            <View style={styles.qrCode}>
-              <ThemedText style={styles.qrPlaceholder}>📱</ThemedText>
-              <ThemedText style={styles.qrText}>QR Code</ThemedText>
-            </View>
-            <ThemedText style={styles.qrHint}>
-              {"Présentez ce code à l'entrée des salles"}
-            </ThemedText>
-          </View>
-        </View>
-
-        {/* Actions */}
-        <View style={styles.passActions}>
-          <TouchableOpacity
-            style={styles.passActionButton}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Afficher le QR Code en plein écran"
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color={colors.tint} />
+          <ThemedText
+            style={[styles.loadingText, { color: colors.textSecondary }]}
           >
-            <ThemedText style={styles.passActionText}>
-              🔍 QR Code plein écran
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-
-        {/* Bouton pour retourner à l'achat (démo) */}
-        <TouchableOpacity
-          style={styles.resetButton}
-          onPress={() => setHasPass(false)}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel="Retour à l'écran d'achat (démo)"
-        >
-          <ThemedText style={styles.resetButtonText}>
-            {"🔄 Retour à l'achat (démo)"}
+            Chargement...
           </ThemedText>
-        </TouchableOpacity>
-      </ScrollView>
+        </View>
+      </View>
     );
   }
 
   return (
-    <ScrollView
-      style={[styles.container, isDark && styles.containerDark]}
-      contentContainerStyle={styles.content}
-    >
-      {/* En-tête */}
-      <ThemedView style={styles.header}>
-        <ThemedText type="title" accessibilityRole="header">
-          🎟️ Acheter un Pass
-        </ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Choisissez le pass qui vous convient
-        </ThemedText>
-      </ThemedView>
-
-      {/* Liste des pass */}
-      <ThemedView style={styles.section}>
-        {PASS_TYPES.map((passType) => (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={
+          pass
+            ? ["#10B981", "#059669", "#047857"]
+            : ["#0D9488", "#0F766E", "#115E59"]
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+        accessible={true}
+        accessibilityRole="header"
+        accessibilityLabel={
+          pass
+            ? `Mon Pass Festival, pass actif et validé pour ${pass.firstName} ${pass.lastName}`
+            : "Mon Pass, créez votre pass festival"
+        }
+      >
+        <View
+          style={{
+            alignItems: "center",
+            marginBottom: 12,
+            position: "relative",
+            justifyContent: "center",
+          }}
+        >
+          <Image
+            source={require("@/assets/images/icon.png")}
+            style={{ width: 60, height: 60, resizeMode: "contain" }}
+          />
           <TouchableOpacity
-            key={passType.type}
-            style={[styles.passTypeCard, isDark && styles.cardDark]}
-            onPress={() => purchasePass(passType.type)}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={`${passType.name}, ${passType.price} euros, ${passType.description}`}
-            accessibilityHint="Appuyez pour acheter ce pass"
+            style={{ position: "absolute", right: 0, top: 0, zIndex: 10 }}
+            onPress={() => router.replace("/")}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <View style={styles.passTypeHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.passTypeName}>
-                {passType.name}
-              </ThemedText>
-              <ThemedText style={styles.passTypePrice}>
-                {passType.price}€
-              </ThemedText>
-            </View>
-            <ThemedText style={styles.passTypeDescription}>
-              {passType.description}
-            </ThemedText>
-            <View style={styles.buyButton}>
-              <ThemedText style={styles.buyButtonText}>Acheter →</ThemedText>
-            </View>
+            <IconSymbol
+              name="rectangle.portrait.and.arrow.right"
+              size={24}
+              color="#FFFFFF"
+            />
           </TouchableOpacity>
-        ))}
-      </ThemedView>
+        </View>
+        <View style={styles.headerContent}>
+          <View style={styles.headerIcon} accessibilityElementsHidden={true}>
+            <IconSymbol
+              name={pass ? "checkmark.seal.fill" : "ticket.fill"}
+              size={32}
+              color="#FFFFFF"
+            />
+          </View>
+          <View style={styles.headerTextContainer}>
+            <ThemedText style={styles.headerTitle}>Mon Pass</ThemedText>
+            <ThemedText style={styles.headerSubtitle}>
+              {pass
+                ? `Pass actif • ${Festival.yearString}`
+                : "Créez votre pass festival"}
+            </ThemedText>
+          </View>
 
-      {/* Infos */}
-      <ThemedView style={[styles.infoCard, isDark && styles.cardDark]}>
-        <ThemedText type="defaultSemiBold">ℹ️ Informations</ThemedText>
-        <ThemedText style={styles.infoText}>
-          {"• Le pass est nominatif et non cessible\n• Une photo est requise pour la génération du QR Code\n• Le pass donne accès à toutes les projections (selon le type)\n• Présentez votre QR Code à l'entrée des salles"}
-        </ThemedText>
-      </ThemedView>
-    </ScrollView>
+          {/* Status Badge */}
+          <View style={styles.statusBadge} accessibilityElementsHidden={true}>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: pass ? "#4ADE80" : "#FCD34D" },
+              ]}
+            />
+            <ThemedText style={styles.statusText}>
+              {pass ? "Validé" : "En attente"}
+            </ThemedText>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
+      >
+        {pass ? (
+          <>
+            {/* Info Card */}
+            <View
+              style={[styles.infoCard]}
+              accessible={true}
+              accessibilityRole="text"
+              accessibilityLabel="Information: Présentez le QR code au Village Fantastique pour accéder aux projections"
+            >
+              <ThemedText style={[styles.infoText, { color: "#FFFFFF" }]}>
+                Présentez le QR code au Village Fantastique pour accéder aux
+                projections.
+              </ThemedText>
+            </View>
+
+            {/* Pass Card */}
+            <PassCard
+              pass={pass}
+              onDelete={handleDelete}
+              style={{ backgroundColor: colors.card }}
+            />
+
+            {/* Benefits Section */}
+            <View
+              style={[styles.benefitsCard]}
+              accessible={true}
+              accessibilityRole="list"
+              accessibilityLabel="Vos avantages: Accès à toutes les projections, Événements exclusifs, Goodies et surprises"
+            >
+              <ThemedText type="defaultSemiBold" style={styles.benefitsTitle}>
+                Vos avantages
+              </ThemedText>
+              <View style={styles.benefitsList}>
+                <View
+                  style={styles.benefitItem}
+                  accessibilityElementsHidden={true}
+                >
+                  <View
+                    style={[
+                      styles.benefitIcon,
+                      { backgroundColor: colors.icon + "15" },
+                    ]}
+                  >
+                    <IconSymbol name="film" size={24} color={colors.icon} />
+                  </View>
+                  <ThemedText style={styles.benefitText}>
+                    Accès à toutes les projections
+                  </ThemedText>
+                </View>
+                <View
+                  style={styles.benefitItem}
+                  accessibilityElementsHidden={true}
+                >
+                  <View
+                    style={[
+                      styles.benefitIcon,
+                      { backgroundColor: colors.icon + "15" },
+                    ]}
+                  >
+                    <IconSymbol
+                      name="star.fill"
+                      size={24}
+                      color={colors.icon}
+                    />
+                  </View>
+                  <ThemedText style={styles.benefitText}>
+                    Événements exclusifs
+                  </ThemedText>
+                </View>
+                <View
+                  style={styles.benefitItem}
+                  accessibilityElementsHidden={true}
+                >
+                  <View
+                    style={[
+                      styles.benefitIcon,
+                      { backgroundColor: colors.icon + "15" },
+                    ]}
+                  >
+                    <IconSymbol
+                      name="gift.fill"
+                      size={24}
+                      color={colors.icon}
+                    />
+                  </View>
+                  <ThemedText style={styles.benefitText}>
+                    Goodies et surprises
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Welcome Card */}
+            <View
+              style={[styles.welcomeCard, { backgroundColor: colors.card }]}
+            >
+              <LinearGradient
+                colors={[colors.tint + "20", colors.tintSecondary + "10"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.welcomeGradient}
+              >
+                <IconSymbol name="sparkles" size={40} color={colors.tint} />
+                <ThemedText type="defaultSemiBold" style={styles.welcomeTitle}>
+                  Bienvenue au FEFFS !
+                </ThemedText>
+                <ThemedText
+                  style={[styles.welcomeText, { color: colors.textSecondary }]}
+                >
+                  Créez votre pass pour profiter de toutes les projections et
+                  événements du Festival Européen du Film Fantastique de
+                  Strasbourg.
+                </ThemedText>
+              </LinearGradient>
+            </View>
+
+            {/* Pass Types */}
+            <View style={styles.passTypesSection}>
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                Choisissez votre formule
+              </ThemedText>
+              <View style={styles.passTypeCards}>
+                <View
+                  style={[
+                    styles.passTypeCard,
+                    { backgroundColor: colors.card, borderColor: colors.tint },
+                  ]}
+                >
+                  <ThemedText
+                    style={[styles.passTypeLabel, { color: colors.tint }]}
+                  >
+                    POPULAIRE
+                  </ThemedText>
+                  <ThemedText
+                    type="defaultSemiBold"
+                    style={styles.passTypeName}
+                  >
+                    Pass Festival
+                  </ThemedText>
+                  <ThemedText style={styles.passTypePrice}>65€</ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.passTypeDesc,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Accès illimité pendant 11 jours
+                  </ThemedText>
+                </View>
+                <View
+                  style={[
+                    styles.passTypeCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.cardBorder,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.passTypeLabel,
+                      { color: colors.tintSecondary },
+                    ]}
+                  >
+                    DÉCOUVERTE
+                  </ThemedText>
+                  <ThemedText
+                    type="defaultSemiBold"
+                    style={styles.passTypeName}
+                  >
+                    Pass Week-end
+                  </ThemedText>
+                  <ThemedText style={styles.passTypePrice}>35€</ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.passTypeDesc,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Accès 3 jours au choix
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+
+            {/* Purchase Form */}
+            <PassPurchaseForm onSubmit={handleSubmit} isLoading={isSaving} />
+          </>
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
-  containerDark: {
-    backgroundColor: "#000",
+  loadingContainer: {
+    flex: 1,
   },
-  content: {
-    padding: 16,
+  loadingContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: Spacing.sm,
   },
-  header: {
-    marginBottom: 24,
+  loadingText: {
+    fontSize: 14,
   },
-  subtitle: {
-    opacity: 0.7,
-    marginTop: 4,
+  headerGradient: {
+    paddingTop: Platform.OS === "ios" ? 40 : 30,
+    paddingBottom: 24,
+    paddingHorizontal: Spacing.lg,
   },
-  section: {
-    marginBottom: 24,
-  },
-  passTypeCard: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  cardDark: {
-    backgroundColor: "#1a1a1a",
-  },
-  passTypeHeader: {
+  headerContent: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    gap: Spacing.md,
   },
-  passTypeName: {
-    fontSize: 18,
-  },
-  passTypePrice: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#E63946",
-  },
-  passTypeDescription: {
-    opacity: 0.7,
-    marginBottom: 16,
-  },
-  buyButton: {
-    backgroundColor: "#E63946",
-    paddingVertical: 12,
-    borderRadius: 8,
+  headerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
+    justifyContent: "center",
   },
-  buyButtonText: {
-    color: "#fff",
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 25,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 2,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.full,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusText: {
+    fontSize: 13,
     fontWeight: "600",
-    fontSize: 16,
+    color: "#FFFFFF",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: Spacing.lg,
+    paddingTop: Spacing.xl,
+    gap: Spacing.lg,
   },
   infoCard: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    padding: 16,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
   },
   infoText: {
-    marginTop: 12,
-    lineHeight: 24,
-    opacity: 0.8,
-  },
-  // Styles du pass
-  passCard: {
-    backgroundColor: "#1a1a1a",
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 24,
-  },
-  passHeader: {
-    alignItems: "center",
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#333",
-  },
-  passLogo: {
-    color: "#E63946",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  passType: {
-    color: "#fff",
-    fontSize: 16,
-    marginTop: 4,
-  },
-  passBody: {
-    flexDirection: "row",
-    marginBottom: 20,
-  },
-  photoContainer: {
-    alignItems: "center",
-  },
-  photo: {
-    width: 100,
-    height: 130,
-    borderRadius: 8,
-  },
-  photoPlaceholder: {
-    width: 100,
-    height: 130,
-    backgroundColor: "#333",
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  photoPlaceholderText: {
-    fontSize: 32,
-  },
-  photoButton: {
-    marginTop: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: "#333",
-    borderRadius: 6,
-  },
-  photoButtonText: {
-    color: "#fff",
-    fontSize: 12,
-  },
-  passInfo: {
     flex: 1,
-    marginLeft: 16,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  benefitsCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.md,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  benefitsTitle: {
+    fontSize: 22,
+  },
+  benefitsList: {
+    gap: Spacing.xl,
+  },
+  benefitItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  benefitIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
     justifyContent: "center",
   },
-  passName: {
-    color: "#fff",
+  benefitText: {
+    fontSize: 14,
+    flex: 1,
+  },
+  welcomeCard: {
+    borderRadius: BorderRadius.lg,
+    overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  welcomeGradient: {
+    padding: Spacing.xl,
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  welcomeTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
+    textAlign: "center",
   },
-  passId: {
-    color: "#888",
+  welcomeText: {
     fontSize: 14,
-    marginBottom: 8,
+    lineHeight: 22,
+    textAlign: "center",
   },
-  passValidity: {
-    color: "#2A9D8F",
-    fontSize: 14,
+  passTypesSection: {
+    gap: Spacing.md,
   },
-  qrContainer: {
+  sectionTitle: {
+    fontSize: 17,
+  },
+  passTypeCards: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  passTypeCard: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
     alignItems: "center",
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#333",
+    gap: 4,
   },
-  qrCode: {
-    width: 150,
-    height: 150,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
+  passTypeLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
-  qrPlaceholder: {
-    fontSize: 48,
-    color: "#000",
-  },
-  qrText: {
-    color: "#000",
-    fontSize: 12,
+  passTypeName: {
+    fontSize: 15,
     marginTop: 4,
   },
-  qrHint: {
-    color: "#888",
-    fontSize: 13,
+  passTypePrice: {
+    fontSize: 28,
+    fontWeight: "700",
   },
-  passActions: {
-    marginBottom: 16,
-  },
-  passActionButton: {
-    backgroundColor: "#457B9D",
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  passActionText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  resetButton: {
-    padding: 16,
-    alignItems: "center",
-    opacity: 0.6,
-  },
-  resetButtonText: {
-    fontSize: 14,
+  passTypeDesc: {
+    fontSize: 12,
+    textAlign: "center",
   },
 });

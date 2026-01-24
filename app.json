@@ -9,14 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "eu.feffs.app",
-      "infoPlist": {
-        "NSCameraUsageDescription": "Cette application a besoin d'accéder à la caméra pour prendre votre photo pour le pass festivalier.",
-        "NSPhotoLibraryUsageDescription": "Cette application a besoin d'accéder à votre galerie pour sélectionner votre photo pour le pass festivalier.",
-        "NSCalendarsUsageDescription": "Cette application a besoin d'accéder à votre calendrier pour exporter votre programme personnalisé.",
-        "NSRemindersUsageDescription": "Cette application peut créer des rappels pour vos projections favorites."
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -25,18 +18,15 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "package": "eu.feffs.app",
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "READ_CALENDAR",
-        "WRITE_CALENDAR",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
-      ],
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.feffsapp"
     },
     "web": {
       "output": "static",
@@ -59,21 +49,29 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Cette application a besoin d'accéder à la caméra pour prendre votre photo pour le pass festivalier."
+          "cameraPermission": "L'application nécessite l'accès à la caméra pour prendre une photo pour votre pass festivalier."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Cette application a besoin d'accéder à votre galerie pour sélectionner votre photo pour le pass festivalier."
+          "photosPermission": "L'application nécessite l'accès à vos photos pour sélectionner une photo pour votre pass festivalier."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "L'application nécessite l'accès à votre calendrier pour ajouter les projections et événements du festival."
         }
       ],
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/notification-icon.png",
-          "color": "#FF0000",
-          "sounds": ["./assets/sounds/notification.wav"]
+          "icon": "./assets/images/icon.png",
+          "color": "#ffffff",
+          "sounds": [],
+          "androidMode": "default",
+          "androidCollapsedTitle": "FEFFS 2026"
         }
       ]
     ],
