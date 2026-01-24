@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerGradient: {
-    paddingTop: Platform.OS === "ios" ? 40 : 30,
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingBottom: 24,
     paddingHorizontal: Spacing.lg,
   },
